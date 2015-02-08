@@ -1,0 +1,27 @@
+html(lang='en')
+    head
+        meta(charset='utf-8')
+        meta(http-equiv='X-UA-Compatible', content='IE=edge')
+        meta(name='viewport', content='width=device-width, initial-scale=1')
+
+        link(rel='stylesheet', href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css')
+        link(rel='stylesheet', href='/css/style.css')
+
+    body
+
+        .container
+            .row
+                h1 DHT Visualizer 
+                br
+                hr
+            .row
+                .col-md-3
+                    .row
+                        h4 peer detail
+                        .peer-detail
+                .col-md-9
+                    h4 DHT Ring 
+                    .dht-ring
+
+        script(src='https://cdnjs.cloudflare.com/ajax/libs/d3/3.4.1/d3.min.js')
+        script(src='/js/app.js')
