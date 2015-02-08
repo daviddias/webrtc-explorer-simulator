@@ -3,7 +3,7 @@ var Id = require('dht-id');
 window.app = {
     init: function () {
 
-        var R = 150 
+        var R = 200 
         var peers = [];
        
         // create peers
