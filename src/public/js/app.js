@@ -305,7 +305,6 @@ var Id = require('dht-id');
 
 window.app = {
     init: function () {
-        console.log('starting');
 
         var R = 150 
         var peers = [];
@@ -320,8 +319,6 @@ window.app = {
             peer.coordinates = cartesianCoordinates(peer.toDec(), R);
         });
 
-        console.log('PEERS', peers);
-        
         var vis = d3.select('#dht-ring')
                     .append('svg');
 
@@ -331,21 +328,27 @@ window.app = {
         var peer = vis.selectAll("circle.peers")
             .data(peers)
             .enter()
-            .append("svg:circle")
+            .append("g")
+            .attr("class", "peer")
+
+            
+        peer.append("svg:circle")
             .attr("cx", function(peer) { return peer.coordinates.x + 1.2 * R + 50; })
             .attr("cy", function(peer) { return peer.coordinates.y + 1.2 * R; })
             .attr("r", "5px")
             .attr("fill", "black")
 
         peer.append("svg:text")
-            .attr("dx", 12)
-            .attr("dy", ".35em")
-            .text(function(d) { return d.toHex(); });
-
-            //.append("text").text(function(peer, i) { return peer.toHex(); });
+            .attr("dx", 4)
+            .attr("dy", ".15em")
+            .text(function(d) { return d.toHex(); })
+            .attr("transform", function(d, i) {
+                        var x = d.coordinates.x + 1.2 * R + 50;
+                        var y = d.coordinates.y + 1.2 * R;
+                        return "translate(" + x + "," + y + ")"; 
+                            })
 
         console.log('finished');
-
 
     }
 };
