@@ -253,16 +253,18 @@ function Id(_id) {
     var dec;
     var hex;
 
-    if (_id && (typeof _id === 'number')) {
+    if (typeof _id === 'number') {
         dec = _id;
         var tmp = ('00000000000000' + _id.toString(16));
         hex = tmp.substring(tmp.length - 12, tmp.length);
-    } else if (_id && (typeof _id === 'string')) {
+    }
+    if (typeof _id === 'string') {
         dec = parseInt(_id, 16);
         hex = _id;
-    } else {
+    }
+    if (typeof _id === 'undefined') {
         hex = sha1((~~(Math.random() * 1e9)).toString(36) + Date.now())
-                .substring(0, 12);
+            .substring(0, 12);
         dec = parseInt(hex, 16);
     }
 
@@ -303,8 +305,10 @@ exports.hash = function(content) {
 },{"git-sha1":2}],4:[function(require,module,exports){
 var Id = require('dht-id');
 
+
 window.app = {
     init: function () {
+        console.log('starting');
 
         var R = 200 
         var peers = [];
@@ -319,50 +323,60 @@ window.app = {
             peer.coordinates = cartesianCoordinates(peer.toDec(), R);
         });
 
+        console.log('PEERS', peers);
+        
         var vis = d3.select('#dht-ring')
                     .append('svg');
 
         vis.attr("width", 600)
             .attr("height", 600);
 
-        var peer = vis.selectAll("circle.peers")
+        var plane = vis.append("g")
+                    //centering
+                    .attr("transform", function(peer, i){
+                        return "translate(" + 1.2*R + "," + 1.2*R + ")"; 
+                    }) 
+
+        var peer = plane.selectAll("circle.peers")
             .data(peers)
             .enter()
             .append("g")
-            .attr("class", "peer")
 
-            
         peer.append("svg:circle")
-            .attr("cx", function(peer) { return peer.coordinates.x + 1.2 * R + 50; })
-            .attr("cy", function(peer) { return peer.coordinates.y + 1.2 * R; })
             .attr("r", "5px")
             .attr("fill", "black")
 
         peer.append("svg:text")
-            .attr("dx", 4)
-            .attr("dy", ".15em")
-            .text(function(d) { return d.toHex(); })
-            .attr("transform", function(d, i) {
-                        var x = d.coordinates.x + 1.2 * R + 50;
-                        var y = d.coordinates.y + 1.2 * R;
-                        return "translate(" + x + "," + y + ")"; 
-                            })
+            .attr("dx", 5)  
+            .attr("dy", ".35em")
+            .attr("fill", "black")
+            .text(function(d) { return d.toHex(); });
+
+            //.append("text").text(function(peer, i) { return peer.toHex(); });
+
+        peer.attr("transform", function(peer, i){
+            return "translate(" + (peer.coordinates.x ) + "," + peer.coordinates.y + ")"; 
+        })
+
 
         console.log('finished');
+
 
     }
 };
 
 window.app.init();
 
+
+
 function cartesianCoordinates(id, r) {
-    var radId = id/(Id.spin()/Math.PI);
+    var fullSpin = new Id(Id.spin()).toDec()
+    var radId = (id/Id.spin())*2*Math.PI;
     return {
         x: Math.sin(radId) * r,
         y: Math.cos(radId) * r
     };
 
 }
-
 
 },{"dht-id":3}]},{},[4]);
