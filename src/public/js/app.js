@@ -305,7 +305,6 @@ exports.hash = function(content) {
 },{"git-sha1":2}],4:[function(require,module,exports){
 var Id = require('dht-id');
 
-
 window.app = {
     init: function () {
         console.log('starting');
@@ -317,14 +316,16 @@ window.app = {
         for (i=0;i<10;i++) {
             peers.push(new Id());
         }
-        
+        peers.push(new Id(0));        
+
+
         // add their coordinates 
         peers.forEach(function (peer) {
             peer.coordinates = cartesianCoordinates(peer.toDec(), R);
         });
 
-        console.log('PEERS', peers);
-        
+       
+
         var vis = d3.select('#dht-ring')
                     .append('svg');
 
@@ -352,9 +353,11 @@ window.app = {
             .attr("fill", "black")
             .text(function(d) { return d.toHex(); });
 
-            //.append("text").text(function(peer, i) { return peer.toHex(); });
 
         peer.attr("transform", function(peer, i){
+            
+
+
             return "translate(" + (peer.coordinates.x ) + "," + peer.coordinates.y + ")"; 
         })
 
@@ -371,10 +374,10 @@ window.app.init();
 
 function cartesianCoordinates(id, r) {
     var fullSpin = new Id(Id.spin()).toDec()
-    var radId = (id/Id.spin())*2*Math.PI;
+    var radId = ((id/Id.spin())*2*Math.PI ) * -1;
     return {
-        x: Math.sin(radId) * r,
-        y: Math.cos(radId) * r
+        x: Math.sin(radId) * r ,
+        y: Math.cos(radId) * r 
     };
 
 }
