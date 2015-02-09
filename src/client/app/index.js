@@ -2,12 +2,11 @@ var Id = require('dht-id');
 
 window.app = {
     init: function () {
-        console.log('starting');
 
         var R = 200 
         var peers = [];
        
-        // create peers
+        // create peers for testing
         for (i=0;i<10;i++) {
             peers.push(new Id());
         }
@@ -44,8 +43,7 @@ window.app = {
             .attr("dx", 5)  
             .attr("dy", ".35em")
             .attr("fill", "black")
-            .text(function(d) { return d.toHex(); });
-
+            .text(function(peer) { return peer.toHex(); });
 
         peer.attr("transform", function(peer, i){
             
@@ -53,7 +51,6 @@ window.app = {
 
             return "translate(" + (peer.coordinates.x ) + "," + peer.coordinates.y + ")"; 
         })
-
 
         console.log('finished');
 
