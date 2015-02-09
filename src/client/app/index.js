@@ -19,8 +19,6 @@ window.app = {
             peer.coordinates = cartesianCoordinates(peer.toDec(), R);
         });
 
-       
-
         var vis = d3.select('#dht-ring')
                     .append('svg');
 
@@ -33,13 +31,13 @@ window.app = {
                         return "translate(" + 1.2*R + "," + 1.2*R + ")"; 
                     }) 
 
-        var peer = plane.selectAll("circle.peers")
+        var peer = plane.selectAll("peers")
             .data(peers)
             .enter()
             .append("g")
 
         peer.append("svg:circle")
-            .attr("r", "5px")
+            .attr("r", "4px")
             .attr("fill", "black")
 
         peer.append("svg:text")
@@ -68,12 +66,13 @@ window.app.init();
 
 
 function cartesianCoordinates(id, r) {
-    var fullSpin = new Id(Id.spin()).toDec()
-    var radId = ((id/Id.spin())*2*Math.PI );
+    var maxId = new Id(Id.spin()).toDec();
+    var radId = id / (maxId / (2 * Math.PI));
+ 
 
     return {
-        x: Math.sin(-radId + Math.PI/2) * r ,
-        y: Math.cos(-radId + Math.PI/2) * r 
+        y: Math.sin(radId - Math.PI / 2) * r ,
+        x: Math.cos(radId - Math.PI / 2) * r 
     };
 
 }
