@@ -356,7 +356,7 @@ window.app = {
 
         peer.attr("transform", function(peer, i){
             
-
+            console.log(i);
 
             return "translate(" + (peer.coordinates.x ) + "," + peer.coordinates.y + ")"; 
         })
@@ -374,10 +374,11 @@ window.app.init();
 
 function cartesianCoordinates(id, r) {
     var fullSpin = new Id(Id.spin()).toDec()
-    var radId = ((id/Id.spin())*2*Math.PI ) * -1;
+    var radId = ((id/Id.spin())*2*Math.PI );
+
     return {
-        x: Math.sin(radId) * r ,
-        y: Math.cos(radId) * r 
+        y: Math.sin(-radId + Math.PI/2) * r ,
+        x: Math.cos(-radId + Math.PI/2) * r 
     };
 
 }
