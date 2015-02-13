@@ -303,9 +303,39 @@ exports.hash = function(content) {
 };
 
 },{"git-sha1":2}],4:[function(require,module,exports){
-var Id = require('dht-id');
+/*!
+  * domready (c) Dustin Diaz 2014 - License MIT
+  */
+!function (name, definition) {
 
-var dht = {
+  if (typeof module != 'undefined') module.exports = definition()
+  else if (typeof define == 'function' && typeof define.amd == 'object') define(definition)
+  else this[name] = definition()
+
+}('domready', function () {
+
+  var fns = [], listener
+    , doc = document
+    , hack = doc.documentElement.doScroll
+    , domContentLoaded = 'DOMContentLoaded'
+    , loaded = (hack ? /^loaded|^c/ : /^loaded|^i|^c/).test(doc.readyState)
+
+
+  if (!loaded)
+  doc.addEventListener(domContentLoaded, listener = function () {
+    doc.removeEventListener(domContentLoaded, listener)
+    loaded = 1
+    while (listener = fns.shift()) listener()
+  })
+
+  return function (fn) {
+    loaded ? fn() : fns.push(fn)
+  }
+
+});
+
+},{}],5:[function(require,module,exports){
+module.exports={
     "21f34817480d":{
         "socketId":"GIWCjqZiDZ9-Qf-cAAAA",
         "fingerTable":{
@@ -370,127 +400,37 @@ var dht = {
             "3":{"ideal":"5ffcc6e13d65","current":"73e42adb55d9"},
             "4":{"ideal":"5ffcc6e13d6d","current":"73e42adb55d9"}},
         "predecessorId":"535fc202f902"}
-};
+}
 
+},{}],6:[function(require,module,exports){
+var Id = require('dht-id');
+var dht = require('./example.json');
+var domready = require('domready');
 
 
 window.app = {
     init: function () {
-
-        var R = 200 
-        var peers = [];
-       
-        Object.keys(dht).map(function (key){
-            var peer = {
-                peerId: key,
-                fingerTable: dht[key].fingerTable,
-                predecessorId: dht[key].predecessorId
-            };
-            peers.push(peer);
-            dht[key].peer = peer;
-        }) 
+        domready(function(){
+            drawDHT();
         
-        // add their coordinates 
-        peers.forEach(function (peer) {
-            peer.coordinates = cartesianCoordinates(
-                new Id(peer.peerId).toDec(), R);
+            document
+                .getElementById('visualize')
+                .addEventListener('click', fetchDHT);
+        
         });
-
-        var vis = d3.select('#dht-ring')
-                    .append('svg');
-
-        vis.attr("width", 600)
-            .attr("height", 600);
-
-        var plane = vis.append("g")
-                    //centering
-                    .attr("transform", function(peer, i){
-                        return "translate(" + 1.2 * R + "," + 1.2 * R + ")"; 
-                    })
-
-        var peer = plane.selectAll("peers")
-            .data(peers);
-
-        var gs = peer.enter()
-                     .append("g")
-
-        gs.append("svg:circle")
-            .attr("r", "4px")
-            .attr("fill", "black")
-
-        gs.append("svg:text")
-            .attr("dx", 5)
-            .attr("dy", ".35em")
-            .attr("fill", "black")
-            .text(function(peer) { return peer.peerId; });
-
-        gs.attr("transform", function(peer, i){
-            return "translate(" + (peer.coordinates.x ) + "," + peer.coordinates.y + ")"; 
-        })
-
-
-        // Attempt n1 to create paths
-
-        var arcBetween = function (source, target) {
-            var dx = target.coordinates.x - source.coordinates.x;
-            var dy = target.coordinates.y - source.coordinates.y;
-            var dr = Math.sqrt(dx * dx + dy * dy);
-            return "M" + 0 +
-                   "," + 0 +
-                   "A" + dr +
-                   "," + dr +
-                   " 0 0,1 " + dx +
-                   "," + dy;
-        };
-
-        var links = peer.selectAll('.links')
-                        .data(function (d) {
-                            var arcs = Object.keys(d.fingerTable).map(function (key) {
-                                return {
-                                    arcId: d.peerId + '-' + key,
-                                    source: d,
-                                    target: dht[d.fingerTable[key].current].peer
-                                };
-                            });
-                            console.log(arcs);
-                            return arcs;
-                        });
-
-        links.enter()
-             .append("path")
-                 .attr('class', 'link')
-                 .attr("d", function (link) {
-                    return arcBetween(link.source, link.target);
-                 });
-
-        //peer.append("path")
-        //   .attr("class", function(d) {return "link"})
-        //   .attr("d", function (source) {
-        //        var targets = Object.keys(source.fingerTable).map(function(key) {
-        //            return dht[source.fingerTable[key].current].peer;
-        //        });
-        //        var arcs = targets.map(function (target) {
-        //            return arcBetween(source, target);
-        //        });
-        //        console.log(arcs);
-
-        //        return arcs.join(' ');
-        //   });
-
-        //console.log('finished');
-
-
     }
 };
 
 window.app.init();
 
+function fetchDHT(){
+    console.log('Hello World');
+}
 
 
 function cartesianCoordinates(id, r) {
     var maxId = new Id(Id.spin()).toDec();
     var radId = id / (maxId / (2 * Math.PI));
- 
 
     return {
         y: Math.sin(radId - Math.PI / 2) * r ,
@@ -499,7 +439,104 @@ function cartesianCoordinates(id, r) {
 
 }
 
+function drawDHT() {
 
+    var R = 200 
+    var peers = [];
 
+    Object.keys(dht).map(function (key){
+        var peer = {
+            peerId: key,
+            fingerTable: dht[key].fingerTable,
+            predecessorId: dht[key].predecessorId
+        };
 
-},{"dht-id":3}]},{},[4]);
+        peers.push(peer);
+        //Add the peer to the global table too to
+        //make it easier to lookup coords by id
+        dht[key].peer = peer;
+    });
+
+    // add their coordinates 
+    peers.forEach(function (peer) {
+        peer.coordinates = cartesianCoordinates(
+            new Id(peer.peerId).toDec(), R);
+    });
+
+    var vis = d3.select('#dht-ring')
+                .append('svg');
+
+    vis.attr("width", 600)
+       .attr("height", 600);
+
+    var plane = vis.append("g")
+                    //centering
+                    .attr("transform", function(peer, i){
+                        return "translate(" + 1.2 * R + "," + 1.2 * R + ")"; 
+                    })
+
+    //separate the overall peer selection, from the on-enter-groups
+    var peer = plane.selectAll("peers")
+                    .data(peers);
+
+    var gs = peer.enter()
+                 .append("g")
+
+    gs.append("svg:circle")
+      .attr("r", "4px")
+      .attr("fill", "black")
+
+    gs.append("svg:text")
+      .attr("dx", 5)
+      .attr("dy", ".35em")
+      .attr("fill", "black")
+      .text(function(peer) { return peer.peerId; });
+
+    gs.attr("transform", function(peer, i){
+        return "translate(" + (peer.coordinates.x ) + "," + peer.coordinates.y + ")"; 
+    });
+
+    var arcBetween = function (source, target) {
+        var dx = target.coordinates.x - source.coordinates.x;
+        var dy = target.coordinates.y - source.coordinates.y;
+        var dr = Math.sqrt(dx * dx + dy * dy);
+
+        //We want to draw the line from 0,0 of the group (which is where
+        //the dot is rendered), to the delta of the too points, since we
+        //are drawing relative to the source position, not the canvas
+        return "M" + 0 +
+            "," + 0 +
+            "A" + dr +
+            "," + dr +
+            " 0 0,1 " + dx +
+            "," + dy;
+    };
+
+    //Create a new sub-selection joining source's to their fingers
+    var links = peer.selectAll('.links')
+                    .data(function (d) {
+                        //Should return the nested dataset, in this case an array of
+                        // [arcId, sourcePeer, targetPeer]
+                        var arcs = Object.keys(d.fingerTable).map(function (key) {
+                            return {
+                                arcId: d.peerId + '-' + key,
+                                source: d,
+                                target: dht[d.fingerTable[key].current].peer
+                            };
+                        });
+                        
+                        return arcs;
+                    });
+
+    //for all the links (a nested selection across sources and targets
+    //draw an arc
+    links.enter()
+         .append("path")
+         .attr('class', 'link')
+         .attr("d", function (link) {
+            return arcBetween(link.source, link.target);
+         });
+
+}
+
+},{"./example.json":5,"dht-id":3,"domready":4}]},{},[6]);
