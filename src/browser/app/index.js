@@ -1,13 +1,12 @@
 var Id = require('dht-id');
-var dht = require('./example.json');
+// var dht = require('./example.json');
 var domready = require('domready');
-
+var xhr = require("xhr");
 
 window.app = {
     init: function () {
         domready(function(){
-            drawDHT();
-        
+            
             document
                 .getElementById('visualize')
                 .addEventListener('click', fetchDHT);
@@ -19,9 +18,15 @@ window.app = {
 window.app.init();
 
 function fetchDHT(){
-    console.log('Hello World');
+    xhr({
+        uri: "http://localhost:9000/dht",
+        headers: {
+            "Content-Type": "application/json"
+        }
+    }, function (err, resp, body) {
+        drawDHT(JSON.parse(body)); 
+    }); 
 }
-
 
 function cartesianCoordinates(id, r) {
     var maxId = new Id(Id.spin()).toDec();
@@ -34,7 +39,7 @@ function cartesianCoordinates(id, r) {
 
 }
 
-function drawDHT() {
+function drawDHT(dht) {
 
     var R = 200 
     var peers = [];
@@ -49,6 +54,7 @@ function drawDHT() {
         peers.push(peer);
         //Add the peer to the global table too to
         //make it easier to lookup coords by id
+        console.log('fill in peer');
         dht[key].peer = peer;
     });
 

@@ -335,84 +335,334 @@ exports.hash = function(content) {
 });
 
 },{}],5:[function(require,module,exports){
-module.exports={
-    "21f34817480d":{
-        "socketId":"GIWCjqZiDZ9-Qf-cAAAA",
-        "fingerTable":{
-            "1":{"ideal":"21f34817480f","current":"2da0201cb888"},
-            "2":{"ideal":"21f348174811","current":"1d85821b2299"},
-            "3":{"ideal":"21f348174815","current":"c7b7d61b1dd5"},
-            "4":{"ideal":"21f34817481d","current":"a1d11c2c4728"}},
-        "predecessorId":"1d85821b2299"},
-    "1d85821b2299":{
-        "socketId":"qqzXHtiydh1Hf0cvAAAB",
-        "fingerTable":{
-            "1":{"ideal":"1d85821b229b","current":"21f34817480d"},
-            "2":{"ideal":"1d85821b229d","current":"21f34817480d"},
-            "3":{"ideal":"1d85821b22a1","current":"21f34817480d"},
-            "4":{"ideal":"1d85821b22a9","current":"21f34817480d"}},
-        "predecessorId":"c7b7d61b1dd5"},
-    "c7b7d61b1dd5":{
-        "socketId":"1KP1mUCEEvt_PF7pAAAC",
-        "fingerTable":{
-            "1":{"ideal":"c7b7d61b1dd7","current":"1d85821b2299"},
-            "2":{"ideal":"c7b7d61b1dd9","current":"1d85821b2299"},
-            "3":{"ideal":"c7b7d61b1ddd","current":"1d85821b2299"},
-            "4":{"ideal":"c7b7d61b1de5","current":"1d85821b2299"}},
-        "predecessorId":"a1d11c2c4728"},
-    "a1d11c2c4728":{
-        "socketId":"hWB-UweuJKSxvAEKAAAD",
-        "fingerTable":{
-            "1":{"ideal":"a1d11c2c472a","current":"c7b7d61b1dd5"},
-            "2":{"ideal":"a1d11c2c472c","current":"c7b7d61b1dd5"},
-            "3":{"ideal":"a1d11c2c4730","current":"c7b7d61b1dd5"},
-            "4":{"ideal":"a1d11c2c4738","current":"c7b7d61b1dd5"}},
-        "predecessorId":"73e42adb55d9"},
-    "2da0201cb888":{
-        "socketId":"vy2t1aUd0I5zkrHwAAAE",
-        "fingerTable":{
-            "1":{"ideal":"2da0201cb88a","current":"535fc202f902"},
-            "2":{"ideal":"2da0201cb88c","current":"535fc202f902"},
-            "3":{"ideal":"2da0201cb890","current":"535fc202f902"},
-            "4":{"ideal":"2da0201cb898","current":"535fc202f902"}},
-        "predecessorId":"21f34817480d"},
-    "535fc202f902":{
-        "socketId":"cr0ZZfq5TPimi367AAAF",
-        "fingerTable":{
-            "1":{"ideal":"535fc202f904","current":"5ffcc6e13d5d"},
-            "2":{"ideal":"535fc202f906","current":"5ffcc6e13d5d"},
-            "3":{"ideal":"535fc202f90a","current":"5ffcc6e13d5d"},
-            "4":{"ideal":"535fc202f912","current":"5ffcc6e13d5d"}},
-        "predecessorId":"2da0201cb888"},
-    "73e42adb55d9":{
-        "socketId":"ukJlQU6cK-Gz5aEWAAAG",
-        "fingerTable":{
-            "1":{"ideal":"73e42adb55db","current":"a1d11c2c4728"},
-            "2":{"ideal":"73e42adb55dd","current":"a1d11c2c4728"},
-            "3":{"ideal":"73e42adb55e1","current":"a1d11c2c4728"},
-            "4":{"ideal":"73e42adb55e9","current":"a1d11c2c4728"}},
-        "predecessorId":"5ffcc6e13d5d"},
-    "5ffcc6e13d5d":{
-        "socketId":"anJGtnPHDVT09OP4AAAH",
-        "fingerTable":{
-            "1":{"ideal":"5ffcc6e13d5f","current":"73e42adb55d9"},
-            "2":{"ideal":"5ffcc6e13d61","current":"73e42adb55d9"},
-            "3":{"ideal":"5ffcc6e13d65","current":"73e42adb55d9"},
-            "4":{"ideal":"5ffcc6e13d6d","current":"73e42adb55d9"}},
-        "predecessorId":"535fc202f902"}
+"use strict";
+var window = require("global/window")
+var once = require("once")
+var parseHeaders = require("parse-headers")
+
+
+var XHR = window.XMLHttpRequest || noop
+var XDR = "withCredentials" in (new XHR()) ? XHR : window.XDomainRequest
+
+module.exports = createXHR
+
+function createXHR(options, callback) {
+    function readystatechange() {
+        if (xhr.readyState === 4) {
+            loadFunc()
+        }
+    }
+
+    function getBody() {
+        // Chrome with requestType=blob throws errors arround when even testing access to responseText
+        var body = undefined
+
+        if (xhr.response) {
+            body = xhr.response
+        } else if (xhr.responseType === "text" || !xhr.responseType) {
+            body = xhr.responseText || xhr.responseXML
+        }
+
+        if (isJson) {
+            try {
+                body = JSON.parse(body)
+            } catch (e) {}
+        }
+
+        return body
+    }
+    
+    var failureResponse = {
+                body: undefined,
+                headers: {},
+                statusCode: 0,
+                method: method,
+                url: uri,
+                rawRequest: xhr
+            }
+    
+    function errorFunc(evt) {
+        clearTimeout(timeoutTimer)
+        if(!(evt instanceof Error)){
+            evt = new Error("" + (evt || "unknown") )
+        }
+        evt.statusCode = 0
+        callback(evt, failureResponse)
+    }
+
+    // will load the data & process the response in a special response object
+    function loadFunc() {
+        clearTimeout(timeoutTimer)
+        
+        var status = (xhr.status === 1223 ? 204 : xhr.status)
+        var response = failureResponse
+        var err = null
+        
+        if (status !== 0){
+            response = {
+                body: getBody(),
+                statusCode: status,
+                method: method,
+                headers: {},
+                url: uri,
+                rawRequest: xhr
+            }
+            if(xhr.getAllResponseHeaders){ //remember xhr can in fact be XDR for CORS in IE
+                response.headers = parseHeaders(xhr.getAllResponseHeaders())
+            }
+        } else {
+            err = new Error("Internal XMLHttpRequest Error")
+        }
+        callback(err, response, response.body)
+        
+    }
+    
+    if (typeof options === "string") {
+        options = { uri: options }
+    }
+
+    options = options || {}
+    if(typeof callback === "undefined"){
+        throw new Error("callback argument missing")
+    }
+    callback = once(callback)
+
+    var xhr = options.xhr || null
+
+    if (!xhr) {
+        if (options.cors || options.useXDR) {
+            xhr = new XDR()
+        }else{
+            xhr = new XHR()
+        }
+    }
+
+    var key
+    var uri = xhr.url = options.uri || options.url
+    var method = xhr.method = options.method || "GET"
+    var body = options.body || options.data
+    var headers = xhr.headers = options.headers || {}
+    var sync = !!options.sync
+    var isJson = false
+    var timeoutTimer
+
+    if ("json" in options) {
+        isJson = true
+        headers["Accept"] || (headers["Accept"] = "application/json") //Don't override existing accept header declared by user
+        if (method !== "GET" && method !== "HEAD") {
+            headers["Content-Type"] = "application/json"
+            body = JSON.stringify(options.json)
+        }
+    }
+
+    xhr.onreadystatechange = readystatechange
+    xhr.onload = loadFunc
+    xhr.onerror = errorFunc
+    // IE9 must have onprogress be set to a unique function.
+    xhr.onprogress = function () {
+        // IE must die
+    }
+    xhr.ontimeout = errorFunc
+    xhr.open(method, uri, !sync)
+    //has to be after open
+    xhr.withCredentials = !!options.withCredentials
+    
+    // Cannot set timeout with sync request
+    // not setting timeout on the xhr object, because of old webkits etc. not handling that correctly
+    // both npm's request and jquery 1.x use this kind of timeout, so this is being consistent
+    if (!sync && options.timeout > 0 ) {
+        timeoutTimer = setTimeout(function(){
+            xhr.abort("timeout");
+        }, options.timeout+2 );
+    }
+
+    if (xhr.setRequestHeader) {
+        for(key in headers){
+            if(headers.hasOwnProperty(key)){
+                xhr.setRequestHeader(key, headers[key])
+            }
+        }
+    } else if (options.headers) {
+        throw new Error("Headers cannot be set on an XDomainRequest object")
+    }
+
+    if ("responseType" in options) {
+        xhr.responseType = options.responseType
+    }
+    
+    if ("beforeSend" in options && 
+        typeof options.beforeSend === "function"
+    ) {
+        options.beforeSend(xhr)
+    }
+
+    xhr.send(body)
+
+    return xhr
+
+
 }
 
-},{}],6:[function(require,module,exports){
-var Id = require('dht-id');
-var dht = require('./example.json');
-var domready = require('domready');
 
+function noop() {}
+
+},{"global/window":6,"once":7,"parse-headers":11}],6:[function(require,module,exports){
+(function (global){
+if (typeof window !== "undefined") {
+    module.exports = window;
+} else if (typeof global !== "undefined") {
+    module.exports = global;
+} else if (typeof self !== "undefined"){
+    module.exports = self;
+} else {
+    module.exports = {};
+}
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{}],7:[function(require,module,exports){
+module.exports = once
+
+once.proto = once(function () {
+  Object.defineProperty(Function.prototype, 'once', {
+    value: function () {
+      return once(this)
+    },
+    configurable: true
+  })
+})
+
+function once (fn) {
+  var called = false
+  return function () {
+    if (called) return
+    called = true
+    return fn.apply(this, arguments)
+  }
+}
+
+},{}],8:[function(require,module,exports){
+var isFunction = require('is-function')
+
+module.exports = forEach
+
+var toString = Object.prototype.toString
+var hasOwnProperty = Object.prototype.hasOwnProperty
+
+function forEach(list, iterator, context) {
+    if (!isFunction(iterator)) {
+        throw new TypeError('iterator must be a function')
+    }
+
+    if (arguments.length < 3) {
+        context = this
+    }
+    
+    if (toString.call(list) === '[object Array]')
+        forEachArray(list, iterator, context)
+    else if (typeof list === 'string')
+        forEachString(list, iterator, context)
+    else
+        forEachObject(list, iterator, context)
+}
+
+function forEachArray(array, iterator, context) {
+    for (var i = 0, len = array.length; i < len; i++) {
+        if (hasOwnProperty.call(array, i)) {
+            iterator.call(context, array[i], i, array)
+        }
+    }
+}
+
+function forEachString(string, iterator, context) {
+    for (var i = 0, len = string.length; i < len; i++) {
+        // no such thing as a sparse string.
+        iterator.call(context, string.charAt(i), i, string)
+    }
+}
+
+function forEachObject(object, iterator, context) {
+    for (var k in object) {
+        if (hasOwnProperty.call(object, k)) {
+            iterator.call(context, object[k], k, object)
+        }
+    }
+}
+
+},{"is-function":9}],9:[function(require,module,exports){
+module.exports = isFunction
+
+var toString = Object.prototype.toString
+
+function isFunction (fn) {
+  var string = toString.call(fn)
+  return string === '[object Function]' ||
+    (typeof fn === 'function' && string !== '[object RegExp]') ||
+    (typeof window !== 'undefined' &&
+     // IE8 and below
+     (fn === window.setTimeout ||
+      fn === window.alert ||
+      fn === window.confirm ||
+      fn === window.prompt))
+};
+
+},{}],10:[function(require,module,exports){
+
+exports = module.exports = trim;
+
+function trim(str){
+  return str.replace(/^\s*|\s*$/g, '');
+}
+
+exports.left = function(str){
+  return str.replace(/^\s*/, '');
+};
+
+exports.right = function(str){
+  return str.replace(/\s*$/, '');
+};
+
+},{}],11:[function(require,module,exports){
+var trim = require('trim')
+  , forEach = require('for-each')
+  , isArray = function(arg) {
+      return Object.prototype.toString.call(arg) === '[object Array]';
+    }
+
+module.exports = function (headers) {
+  if (!headers)
+    return {}
+
+  var result = {}
+
+  forEach(
+      trim(headers).split('\n')
+    , function (row) {
+        var index = row.indexOf(':')
+          , key = trim(row.slice(0, index)).toLowerCase()
+          , value = trim(row.slice(index + 1))
+
+        if (typeof(result[key]) === 'undefined') {
+          result[key] = value
+        } else if (isArray(result[key])) {
+          result[key].push(value)
+        } else {
+          result[key] = [ result[key], value ]
+        }
+      }
+  )
+
+  return result
+}
+},{"for-each":8,"trim":10}],12:[function(require,module,exports){
+var Id = require('dht-id');
+// var dht = require('./example.json');
+var domready = require('domready');
+var xhr = require("xhr");
 
 window.app = {
     init: function () {
         domready(function(){
-            drawDHT();
-        
+            
             document
                 .getElementById('visualize')
                 .addEventListener('click', fetchDHT);
@@ -424,9 +674,15 @@ window.app = {
 window.app.init();
 
 function fetchDHT(){
-    console.log('Hello World');
+    xhr({
+        uri: "http://localhost:9000/dht",
+        headers: {
+            "Content-Type": "application/json"
+        }
+    }, function (err, resp, body) {
+        drawDHT(JSON.parse(body)); 
+    }); 
 }
-
 
 function cartesianCoordinates(id, r) {
     var maxId = new Id(Id.spin()).toDec();
@@ -439,7 +695,7 @@ function cartesianCoordinates(id, r) {
 
 }
 
-function drawDHT() {
+function drawDHT(dht) {
 
     var R = 200 
     var peers = [];
@@ -454,6 +710,7 @@ function drawDHT() {
         peers.push(peer);
         //Add the peer to the global table too to
         //make it easier to lookup coords by id
+        console.log('fill in peer');
         dht[key].peer = peer;
     });
 
@@ -539,4 +796,4 @@ function drawDHT() {
 
 }
 
-},{"./example.json":5,"dht-id":3,"domready":4}]},{},[6]);
+},{"dht-id":3,"domready":4,"xhr":5}]},{},[12]);
