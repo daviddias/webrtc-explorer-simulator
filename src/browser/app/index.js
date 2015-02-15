@@ -1,15 +1,16 @@
 var Id = require('dht-id');
 // var dht = require('./example.json');
 var domready = require('domready');
-var xhr = require("xhr");
+
+var dht = {};
 
 window.app = {
     init: function () {
         domready(function(){
             
             document
-                .getElementById('visualize')
-                .addEventListener('click', fetchDHT);
+                .getElementById('simulate')
+                .addEventListener('click', buildDHT);
         
         });
     }
@@ -17,16 +18,134 @@ window.app = {
 
 window.app.init();
 
-function fetchDHT(){
-    xhr({
-        uri: "http://localhost:9000/dht",
-        headers: {
-            "Content-Type": "application/json"
-        }
-    }, function (err, resp, body) {
-        drawDHT(JSON.parse(body)); 
-    }); 
+function buildDHT(){
+    createPeers();
+    updateFingers();
+    drawDHT();
+    maxNumberHops();
 }
+
+/// 
+
+function createPeers() {
+    var nPeers = parseInt(document.getElementById('n_peers').value);
+    var fingers = JSON
+        .parse('[' + document.getElementById('fingers').value + ']');
+
+    fingers = fingers.map(function(number) {
+        return parseInt(number);
+    });
+    console.log('>', nPeers, fingers);
+   
+    for (var i = 0; i < nPeers; i++) {
+        var peerId = new Id();
+        dht[peerId.toHex()] = {
+            fingerTable: {}
+        };
+
+        calculateIdealFingers(peerId, fingers); 
+    }
+}
+
+function calculateIdealFingers(pId, fingers) {
+    var k = 1;
+        
+    while (k <= fingers.length) {
+        console.log('f> ', fingers[k-1]); 
+        var ideal = (pId.toDec() + Math.pow(2, fingers[k - 1] - 1)) %
+            Math.pow(2, 48);
+        
+        console.log('ideal: ', ideal);
+        ideal = new Id(ideal);
+        
+        dht[pId.toHex()].fingerTable[k] = {
+            ideal: ideal.toHex(),
+            current: undefined
+        };
+
+        k++;
+
+        console.log('CIF',
+                    pId.toHex(),
+                    ideal.toHex(),
+                    pId.toDec(),
+                    ideal.toDec(),
+                    k-1);
+    }
+}
+
+
+
+
+///
+
+function updateFingers() {
+    console.log('update-fingers', dht);
+
+    var sortedPeersId = Object.keys(dht).sort(function(a, b) {
+        var aId = new Id(a);
+        var bId = new Id(b);
+        if (aId.toDec() > bId.toDec()) {
+            return 1;
+        }
+        if (aId.toDec() < bId.toDec()) {
+            return -1;
+        }
+        if (aId.toDec() === bId.toDec()) {
+            console.log('error - There should never two identical ids');
+            process.exit(1);
+        }
+    });
+
+    sortedPeersId.forEach(function(peerId) {
+
+        Object.keys(dht[peerId].fingerTable).forEach(function(rowIndex) {
+            var fingerId = sucessorTo(dht[peerId]
+                                .fingerTable[rowIndex]
+                                .ideal, sortedPeersId);
+
+            if (dht[peerId].fingerTable[rowIndex].current !== fingerId) {
+                dht[peerId].fingerTable[rowIndex].current = fingerId;
+            } 
+        });
+    });
+
+    function sucessorTo(pretendedId, sortedIdList) {
+        pretendedId = new Id(pretendedId).toDec();
+        sortedIdList = sortedIdList.map(function(inHex) {
+            return new Id(inHex).toDec();
+        });
+
+        var sucessorId;
+        sortedIdList.some(function(value, index) {
+            if (pretendedId === value) {
+                sucessorId = value;
+                return true;
+            }
+
+            if (pretendedId < value) {
+                sucessorId = value;
+                return true;
+            }
+
+            if (index + 1 === sortedIdList.length) {
+                sucessorId = sortedIdList[0];
+                return true;
+            }
+        });
+
+        return new Id(sucessorId).toHex();
+    }
+}
+
+///
+
+function maxNumberHops() {
+    console.log('max number of hops is: ', 'TODO');
+}
+
+
+///
 
 function cartesianCoordinates(id, r) {
     var maxId = new Id(Id.spin()).toDec();
@@ -39,7 +158,7 @@ function cartesianCoordinates(id, r) {
 
 }
 
-function drawDHT(dht) {
+function drawDHT() {
 
     var R = 200 
     var peers = [];
