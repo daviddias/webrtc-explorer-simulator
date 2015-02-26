@@ -386,11 +386,10 @@ function createPeers() {
 }
 
 function calculateIdealFingers(pId, fingers) {
-    var k = 1;
-        
+    var k = 1; 
     while (k <= fingers.length) {
         console.log('f> ', fingers[k-1]); 
-        var ideal = (pId.toDec() + Math.pow(2, fingers[k - 1] - 1)) %
+        var ideal = (pId.toDec() + Math.pow(2, fingers[k - 1])) %
             Math.pow(2, 48);
         
         console.log('ideal: ', ideal);
@@ -410,7 +409,6 @@ function calculateIdealFingers(pId, fingers) {
                     ideal.toDec(),
                     k-1);
     }
-    console.log(dht);
 }
 
 
