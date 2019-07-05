@@ -12,7 +12,7 @@
   "author": "David Dias <daviddias.p@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "browserify": "^14.1.0",
+    "browserify": "^16.3.0",
     "config": "^1.10.0",
     "dht-id": "^1.0.2",
     "domready": "^1.0.7",
