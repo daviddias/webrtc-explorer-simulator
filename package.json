@@ -18,7 +18,7 @@
     "domready": "^1.0.7",
     "hapi": "^16.1.0",
     "jade": "^1.9.2",
-    "node-sass": "^4.3.0"
+    "node-sass": "^4.14.1"
   },
   "devDependencies": {
     "code": "^4.0.0",
